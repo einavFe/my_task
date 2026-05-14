@@ -1,1389 +1,846 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="theme-color" content="#1a1a2e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="המשימות שלי">
-<title>המשימות שלי</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0f0f1a;
-    --surface: #1a1a2e;
-    --surface2: #22223b;
-    --border: rgba(255,255,255,0.08);
-    --text: #f0eff4;
-    --text-dim: #888;
-    --accent: #e63946;
-    --accent2: #457b9d;
-    --accent3: #a8dadc;
-    --high: #e63946;
-    --mid: #f4a261;
-    --low: #52b788;
-    --done-opacity: 0.35;
-    --radius: 14px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    font-family: 'Heebo', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100dvh;
-    overflow-x: hidden;
-  }
-
-  /* BG texture */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at 20% 10%, rgba(69,123,157,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(230,57,70,0.08) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* HEADER */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(15,15,26,0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px 10px;
-  }
-
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .app-title {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--text) 0%, var(--accent3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .stats {
-    font-size: 12px;
-    color: var(--text-dim);
-    background: var(--surface2);
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-  }
-
-  /* FILTER TABS */
-  .filter-bar {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-  .filter-bar::-webkit-scrollbar { display: none; }
-
-  .add-cat-inline-btn {
-    flex-shrink: 0;
-    margin-right: auto;
-    border: 1px dashed rgba(255,255,255,0.2);
-    background: transparent;
-    color: var(--text-dim);
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .add-cat-inline-btn:hover { border-color: var(--accent3); color: var(--accent3); }
-
-  /* QUICK CAT MODAL */
-  .quick-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 400;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    backdrop-filter: blur(4px);
-  }
-  .quick-modal-overlay.open { display: flex; }
-  .quick-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 24px 20px;
-    width: 100%;
-    max-width: 360px;
-    animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  @keyframes popIn {
-    from { opacity: 0; transform: scale(0.85); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .quick-modal-title {
-    font-size: 17px;
-    font-weight: 800;
-    margin-bottom: 14px;
-  }
-  .quick-modal-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .quick-modal-row input { flex: 1; }
-  .color-picker {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-  .color-swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-  .color-swatch.selected { border-color: white; transform: scale(1.15); }
-  .quick-modal-actions { display: flex; gap: 8px; }
-  .quick-modal-actions .btn-primary { margin-top: 0; flex: 1; padding: 12px; }
-  .btn-cancel {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .filter-btn {
-    flex-shrink: 0;
-    border: none;
-    background: var(--surface2);
-    color: var(--text-dim);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-  }
-  .filter-btn.active {
-    background: var(--accent2);
-    color: white;
-    border-color: rgba(255,255,255,0.1);
-  }
-
-  /* MAIN */
-  main {
-    position: relative;
-    z-index: 1;
-    padding: 16px;
-    padding-bottom: 100px;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  /* CATEGORY SECTION */
-  .category-section {
-    margin-bottom: 20px;
-    animation: fadeUp 0.3s ease both;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    padding: 0 2px;
-  }
-
-  .category-name {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .cat-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .cat-count {
-    font-size: 11px;
-    background: var(--surface2);
-    padding: 2px 7px;
-    border-radius: 10px;
-    color: var(--text-dim);
-  }
-
-  /* TASK CARD */
-  .task-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    transition: all 0.25s ease;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .task-card::before {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    border-radius: 0 var(--radius) var(--radius) 0;
-  }
-
-  .task-card.high::before { background: var(--high); }
-  .task-card.mid::before  { background: var(--mid); }
-  .task-card.low::before  { background: var(--low); }
-
-  .task-card.done {
-    opacity: var(--done-opacity);
-  }
-
-  .task-card:active { transform: scale(0.98); }
-
-  /* CHECKBOX */
-  .check-btn {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    background: transparent;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    margin-top: 1px;
-  }
-
-  .task-card.done .check-btn {
-    background: var(--low);
-    border-color: var(--low);
-  }
-
-  .check-btn svg { display: none; }
-  .task-card.done .check-btn svg { display: block; }
-
-  .task-body { flex: 1; min-width: 0; }
-
-  .task-text {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.4;
-    word-break: break-word;
-  }
-
-  .task-card.done .task-text {
-    text-decoration: line-through;
-  }
-
-  .task-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 5px;
-    flex-wrap: wrap;
-  }
-
-  .badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 8px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-
-  .badge.high { background: rgba(230,57,70,0.2); color: var(--high); }
-  .badge.mid  { background: rgba(244,162,97,0.2); color: var(--mid); }
-  .badge.low  { background: rgba(82,183,136,0.2); color: var(--low); }
-
-  .task-date {
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .delete-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    padding: 2px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-  }
-
-  .task-card:hover .delete-btn { opacity: 1; }
-  .task-card:focus-within .delete-btn { opacity: 1; }
-
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center;
-    padding: 30px 20px;
-    color: var(--text-dim);
-    font-size: 14px;
-  }
-
-  /* FAB */
-  .fab {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
-    background: linear-gradient(135deg, var(--accent) 0%, #c1121f 100%);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 14px 28px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(230,57,70,0.5);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-  }
-  .fab:active { transform: translateX(-50%) scale(0.96); }
-
-  /* MODAL */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 300;
-    align-items: flex-end;
-    backdrop-filter: blur(4px);
-  }
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px 24px 0 0;
-    padding: 24px 20px 36px;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
-  }
-
-  .modal-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin: 0 auto 20px;
-  }
-
-  .modal-title {
-    font-size: 18px;
-    font-weight: 900;
-    margin-bottom: 16px;
-  }
-
-  .field-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 6px;
-  }
-
-  .field { margin-bottom: 14px; }
-
-  input[type="text"], textarea, select {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 11px 14px;
-    color: var(--text);
-    font-family: 'Heebo', sans-serif;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  input[type="text"]:focus,
-  textarea:focus,
-  select:focus {
-    border-color: var(--accent2);
-  }
-
-  textarea { resize: none; height: 80px; }
-
-  select option { background: var(--surface2); }
-
-  /* URGENCY PICKER */
-  .urgency-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .urg-btn {
-    padding: 9px;
-    border-radius: 10px;
-    border: 2px solid var(--border);
-    background: var(--surface2);
-    color: var(--text-dim);
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-  }
-  .urg-btn.selected-high { border-color: var(--high); color: var(--high); background: rgba(230,57,70,0.1); }
-  .urg-btn.selected-mid  { border-color: var(--mid);  color: var(--mid);  background: rgba(244,162,97,0.1); }
-  .urg-btn.selected-low  { border-color: var(--low);  color: var(--low);  background: rgba(82,183,136,0.1); }
-
-  /* CAT ADD */
-  .cat-add-row {
-    display: flex;
-    gap: 8px;
-  }
-  .cat-add-row input { flex: 1; }
-
-  .btn-secondary {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 10px;
-    padding: 11px 16px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .btn-primary {
-    width: 100%;
-    background: linear-gradient(135deg, var(--accent), #c1121f);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 14px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 6px;
-    transition: opacity 0.2s;
-  }
-  .btn-primary:active { opacity: 0.85; }
-
-  .modal-close {
-    float: left;
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    font-size: 22px;
-    cursor: pointer;
-    line-height: 1;
-  }
-
-  /* Color dots for categories */
-  .cat-manage {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-  .cat-chip {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 13px;
-  }
-  .cat-chip .rm {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 0 0 0 2px;
-    line-height: 1;
-  }
-
-
-  /* SELECTION */
-  .task-card.selected {
-    border-color: var(--accent2);
-    background: rgba(69,123,157,0.12);
-  }
-  .check-btn.checked {
-    background: var(--accent2) !important;
-    border-color: var(--accent2) !important;
-  }
-  .check-btn.checked svg { display: block !important; }
-
-  .delete-btn {
-    opacity: 1 !important;
-  }
-
-  .selection-bar {
-    position: sticky;
-    top: 72px;
-    z-index: 90;
-    background: var(--accent2);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    animation: fadeUp 0.2s ease;
-  }
-  .sel-count {
-    font-size: 14px;
-    font-weight: 700;
-    color: white;
-  }
-  .sel-actions { display: flex; gap: 8px; }
-  .sel-btn {
-    border: none;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .sel-btn:active { opacity: 0.8; }
-  .sel-archive { background: rgba(255,255,255,0.2); color: white; }
-  .sel-delete  { background: var(--high); color: white; }
-  .sel-cancel  { background: rgba(255,255,255,0.1); color: white; }
-
-  /* SECTION DIVIDER */
-  .section-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 16px 0;
-  }
-
-  /* ARCHIVE SIDEBAR */
-  .archive-toggle {
-    position: fixed;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 150;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-left: none;
-    border-radius: 10px 0 0 10px;
-    padding: 16px 7px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-dim);
-    font-family: 'Heebo', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    transition: background 0.2s, color 0.2s;
-    writing-mode: vertical-rl;
-    letter-spacing: 1px;
-  }
-  .archive-toggle:hover { background: var(--surface); color: var(--accent3); }
-  .arch-count {
-    writing-mode: horizontal-tb;
-    background: var(--accent);
-    color: white;
-    border-radius: 10px;
-    padding: 2px 5px;
-    font-size: 10px;
-    font-weight: 800;
-    min-width: 18px;
-    text-align: center;
-    display: none;
-  }
-  .arch-count.visible { display: block; }
-
-  .archive-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 490;
-    backdrop-filter: blur(2px);
-  }
-  .archive-overlay.open { display: block; }
-
-  .archive-sidebar {
-    position: fixed;
-    top: 0;
-    left: -320px;
-    width: 300px;
-    height: 100dvh;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    z-index: 500;
-    transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
-    display: flex;
-    flex-direction: column;
-    box-shadow: 4px 0 30px rgba(0,0,0,0.5);
-  }
-  .archive-sidebar.open { left: 0; }
-
-  .archive-header {
-    padding: 20px 16px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .archive-title {
-    font-size: 17px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .archive-close {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    font-size: 20px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px;
-  }
-  .archive-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .archive-empty {
-    text-align: center;
-    padding: 40px 16px;
-    color: var(--text-dim);
-    font-size: 14px;
-  }
-  .archive-group-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin: 10px 2px 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .archive-task {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 7px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .archive-task-text {
-    flex: 1;
-    font-size: 14px;
-    text-decoration: line-through;
-    color: var(--text-dim);
-    line-height: 1.4;
-    word-break: break-word;
-  }
-  .archive-task-meta {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .restore-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 16px;
-    padding: 2px;
-    flex-shrink: 0;
-    transition: color 0.2s;
-    line-height: 1;
-  }
-  .restore-btn:hover { color: var(--low); }
-  .delete-arch-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px;
-    flex-shrink: 0;
-    transition: color 0.2s;
-    line-height: 1;
-    opacity: 0.5;
-  }
-  .delete-arch-btn:hover { color: var(--high); opacity: 1; }
-  .archive-clear-btn {
-    margin: 0 12px 16px;
-    background: transparent;
-    border: 1px solid rgba(230,57,70,0.3);
-    color: var(--high);
-    border-radius: 10px;
-    padding: 10px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
-  }
-  .archive-clear-btn:hover { background: rgba(230,57,70,0.1); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <!-- הגדרות אפליקציה עבור אייפון ואנדרואיד -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="המשימות שלי">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
+
+    <title>המשימות שלי</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        --bg: #0f0f1a;
+        --surface: #1a1a2e;
+        --surface2: #22223b;
+        --border: rgba(255,255,255,0.08);
+        --text: #f0eff4;
+        --text-dim: #888;
+        --accent: #e63946;
+        --accent2: #457b9d;
+        --accent3: #a8dadc;
+        --high: #e63946;
+        --mid: #f4a261;
+        --low: #52b788;
+        --done-opacity: 0.35;
+        --radius: 14px;
+        --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      body {
+        font-family: 'Heebo', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100dvh;
+        overflow-x: hidden;
+      }
+
+      /* BG texture */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(ellipse at 20% 10%, rgba(69,123,157,0.12) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 80%, rgba(230,57,70,0.08) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(15,15,26,0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 20px 10px;
+      }
+
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .app-title {
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, var(--text) 0%, var(--accent3) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .stats {
+        font-size: 12px;
+        color: var(--text-dim);
+        background: var(--surface2);
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .filter-bar {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+      }
+      .filter-bar::-webkit-scrollbar { display: none; }
+
+      .add-cat-inline-btn {
+        flex-shrink: 0;
+        margin-right: auto;
+        border: 1px dashed rgba(255,255,255,0.2);
+        background: transparent;
+        color: var(--text-dim);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .add-cat-inline-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+
+      .quick-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 400;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+      }
+      .quick-modal-overlay.open { display: flex; }
+      .quick-modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px 20px;
+        width: 100%;
+        max-width: 360px;
+        animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      }
+      @keyframes popIn {
+        from { opacity: 0; transform: scale(0.85); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+      .quick-modal-title {
+        font-size: 17px;
+        font-weight: 800;
+        margin-bottom: 14px;
+      }
+      .quick-modal-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .quick-modal-row input { flex: 1; }
+      .color-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .color-swatch {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform 0.15s;
+      }
+      .color-swatch.selected { border-color: white; transform: scale(1.15); }
+      .quick-modal-actions { display: flex; gap: 8px; }
+      .quick-modal-actions .btn-primary { margin-top: 0; flex: 1; padding: 12px; }
+      .btn-cancel {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .filter-btn {
+        flex-shrink: 0;
+        border: none;
+        background: var(--surface2);
+        color: var(--text-dim);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+      }
+      .filter-btn.active {
+        background: var(--accent2);
+        color: white;
+        border-color: rgba(255,255,255,0.1);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        padding: 16px;
+        padding-bottom: 100px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .category-section {
+        margin-bottom: 20px;
+        animation: fadeUp 0.3s ease both;
+      }
+
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 0 2px;
+      }
+
+      .category-name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .cat-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .cat-count {
+        font-size: 11px;
+        background: var(--surface2);
+        padding: 2px 7px;
+        border-radius: 10px;
+        color: var(--text-dim);
+      }
+
+      .task-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        transition: all 0.25s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .task-card::before {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+
+      .task-card.high::before { background: var(--high); }
+      .task-card.mid::before  { background: var(--mid); }
+      .task-card.low::before  { background: var(--low); }
+
+      .task-card.done {
+        opacity: var(--done-opacity);
+      }
+
+      .check-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        margin-top: 1px;
+      }
+
+      .task-card.done .check-btn {
+        background: var(--low);
+        border-color: var(--low);
+      }
+
+      .check-btn svg { display: none; }
+      .task-card.done .check-btn svg { display: block; }
+
+      .task-body { flex: 1; min-width: 0; }
+
+      .task-text {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .task-card.done .task-text {
+        text-decoration: line-through;
+      }
+
+      .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 5px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .badge.high { background: rgba(230,57,70,0.2); color: var(--high); }
+      .badge.mid  { background: rgba(244,162,97,0.2); color: var(--mid); }
+      .badge.low  { background: rgba(82,183,136,0.2); color: var(--low); }
+
+      .task-date {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      .delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-dim);
+        cursor: pointer;
+        padding: 2px;
+        opacity: 0.8;
+        flex-shrink: 0;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--text-dim);
+        font-size: 14px;
+      }
+
+      .fab {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        background: linear-gradient(135deg, var(--accent) 0%, #c1121f 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 28px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(230,57,70,0.5);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 300;
+        align-items: flex-end;
+        backdrop-filter: blur(4px);
+      }
+      .modal-overlay.open { display: flex; }
+
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px 24px 0 0;
+        padding: 24px 20px 36px;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+      }
+
+      .modal-handle {
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 20px;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 900;
+        margin-bottom: 16px;
+      }
+
+      .field-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 6px;
+      }
+
+      .field { margin-bottom: 14px; }
+
+      input[type="text"], select {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 14px;
+        color: var(--text);
+        font-family: 'Heebo', sans-serif;
+        font-size: 15px;
+        outline: none;
+      }
+
+      .urgency-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .urg-btn {
+        padding: 9px;
+        border-radius: 10px;
+        border: 2px solid var(--border);
+        background: var(--surface2);
+        color: var(--text-dim);
+        font-family: 'Heebo', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+      }
+      .urg-btn.selected-high { border-color: var(--high); color: var(--high); background: rgba(230,57,70,0.1); }
+      .urg-btn.selected-mid  { border-color: var(--mid);  color: var(--mid);  background: rgba(244,162,97,0.1); }
+      .urg-btn.selected-low  { border-color: var(--low);  color: var(--low);  background: rgba(82,183,136,0.1); }
+
+      .btn-primary {
+        width: 100%;
+        background: linear-gradient(135deg, var(--accent), #c1121f);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 6px;
+      }
+
+      .selection-bar {
+        position: sticky;
+        top: 72px;
+        z-index: 90;
+        background: var(--accent2);
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .archive-toggle {
+        position: fixed;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 150;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-left: none;
+        border-radius: 0 10px 10px 0;
+        padding: 16px 7px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-dim);
+        writing-mode: vertical-rl;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .archive-sidebar {
+        position: fixed;
+        top: 0;
+        left: -320px;
+        width: 300px;
+        height: 100dvh;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        z-index: 500;
+        transition: left 0.3s ease;
+        display: flex;
+        flex-direction: column;
+      }
+      .archive-sidebar.open { left: 0; }
+
+      .archive-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 490;
+      }
+      .archive-overlay.open { display: block; }
+    </style>
 </head>
 <body>
 
-
-<!-- ARCHIVE OVERLAY -->
 <div class="archive-overlay" id="archiveOverlay"></div>
 
-<!-- ARCHIVE SIDEBAR -->
 <aside class="archive-sidebar" id="archiveSidebar">
-  <div class="archive-header">
-    <div class="archive-title">
-      <span>🗂</span> ארכיון
+    <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
+        <span style="font-weight: 900;">🗂 ארכיון</span>
+        <button id="archiveClose" style="background:none; border:none; color:var(--text-dim); cursor:pointer;">✕</button>
     </div>
-    <button class="archive-close" id="archiveClose">✕</button>
-  </div>
-  <div class="archive-body" id="archiveBody"></div>
-  <button class="archive-clear-btn" id="archiveClearBtn">🗑 מחק הכל מהארכיון</button>
+    <div id="archiveBody" style="flex:1; overflow-y:auto; padding:12px;"></div>
+    <button id="archiveClearBtn" style="margin:12px; padding:10px; background:transparent; border:1px solid var(--high); color:var(--high); border-radius:10px; font-family:'Heebo'; cursor:pointer;">🗑 מחק הכל</button>
 </aside>
 
-<!-- ARCHIVE TOGGLE TAB -->
 <button class="archive-toggle" id="archiveToggle">
-  <span class="arch-count" id="archCount"></span>
-  ארכיון
+    <span id="archCount" style="writing-mode: horizontal-tb; background:var(--accent); color:white; border-radius:10px; padding:2px 5px; font-size:10px; display:none;"></span>
+    ארכיון
 </button>
 
 <header>
-  <div class="header-top">
-    <div class="app-title">✦ המשימות שלי</div>
-    <div class="stats" id="stats">0 פתוחות</div>
-  </div>
-  <div class="filter-bar" id="filterBar">
-    <button class="filter-btn active" data-filter="all">הכל</button>
-    <button class="filter-btn" data-filter="high">🔴 דחוף</button>
-    <button class="add-cat-inline-btn" id="quickAddCatBtn">＋ תחום חדש</button>
-  </div>
+    <div class="header-top">
+        <div class="app-title">✦ המשימות שלי</div>
+        <div class="stats" id="stats">0 פתוחות</div>
+    </div>
+    <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="all">הכל</button>
+        <button class="filter-btn" data-filter="high">🔴 דחוף</button>
+        <button class="add-cat-inline-btn" id="quickAddCatBtn">＋ תחום חדש</button>
+    </div>
 </header>
 
 <div class="selection-bar" id="selectionBar" style="display:none">
-  <span class="sel-count" id="selectionCount"></span>
-  <div class="sel-actions">
-    <button class="sel-btn sel-archive" onclick="markSelectedDone()">→ ארכיון</button>
-    <button class="sel-btn sel-delete" onclick="deleteSelected()">🗑 מחק</button>
-    <button class="sel-btn sel-cancel" onclick="clearSelection()">✕</button>
-  </div>
+    <span id="selectionCount" style="color:white; font-size:14px; font-weight:700;"></span>
+    <div style="display:flex; gap:8px;">
+        <button onclick="markSelectedDone()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 12px; border-radius:8px; font-family:'Heebo'; cursor:pointer;">→ ארכיון</button>
+        <button onclick="clearSelection()" style="background:none; color:white; border:none; cursor:pointer;">✕</button>
+    </div>
 </div>
+
 <main id="taskList"></main>
 
 <button class="fab" id="fabBtn">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  משימה חדשה
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    משימה חדשה
 </button>
 
-<!-- QUICK ADD CATEGORY MODAL -->
+<!-- MODALS -->
 <div class="quick-modal-overlay" id="quickCatModal">
-  <div class="quick-modal">
-    <div class="quick-modal-title">➕ תחום חדש</div>
-    <div class="quick-modal-row">
-      <input type="text" id="quickCatName" placeholder="שם התחום, למשל: כספים">
+    <div class="quick-modal">
+        <div class="quick-modal-title">➕ תחום חדש</div>
+        <input type="text" id="quickCatName" placeholder="שם התחום..." style="width:100%; margin-bottom:15px; padding:10px; background:var(--surface2); border:1px solid var(--border); color:white; border-radius:10px;">
+        <div class="color-picker" id="colorPicker"></div>
+        <div class="quick-modal-actions">
+            <button class="btn-cancel" id="cancelQuickCat">ביטול</button>
+            <button class="btn-primary" id="saveQuickCat">הוסף</button>
+        </div>
     </div>
-    <div class="field-label" style="margin-bottom:8px">בחר צבע</div>
-    <div class="color-picker" id="colorPicker"></div>
-    <div class="quick-modal-actions">
-      <button class="btn-cancel" id="cancelQuickCat">ביטול</button>
-      <button class="btn-primary" id="saveQuickCat">הוסף תחום</button>
-    </div>
-  </div>
 </div>
 
-<!-- ADD TASK MODAL -->
 <div class="modal-overlay" id="addModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <button class="modal-close" id="closeModal">✕</button>
-    <div class="modal-title">משימה חדשה</div>
-
-    <div class="field">
-      <div class="field-label">תיאור המשימה</div>
-      <input type="text" id="taskText" placeholder="מה צריך לעשות?" autofocus>
+    <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">משימה חדשה</div>
+        <div class="field">
+            <div class="field-label">תיאור</div>
+            <input type="text" id="taskText" placeholder="מה צריך לעשות?">
+        </div>
+        <div class="field">
+            <div class="field-label">נושא</div>
+            <select id="taskCat"></select>
+        </div>
+        <div class="field">
+            <div class="field-label">דחיפות</div>
+            <div class="urgency-grid">
+                <button class="urg-btn" data-urg="high">🔴 גבוהה</button>
+                <button class="urg-btn" data-urg="mid">🟡 בינונית</button>
+                <button class="urg-btn" data-urg="low">🟢 נמוכה</button>
+            </div>
+        </div>
+        <button class="btn-primary" id="saveTask">שמור משימה</button>
+        <button id="closeModal" style="width:100%; background:none; border:none; color:var(--text-dim); margin-top:10px; cursor:pointer;">ביטול</button>
     </div>
-
-    <div class="field">
-      <div class="field-label">נושא</div>
-      <select id="taskCat"></select>
-    </div>
-
-    <div class="field">
-      <div class="field-label">דחיפות</div>
-      <div class="urgency-grid">
-        <button class="urg-btn" data-urg="high">🔴 גבוהה</button>
-        <button class="urg-btn" data-urg="mid">🟡 בינונית</button>
-        <button class="urg-btn" data-urg="low">🟢 נמוכה</button>
-      </div>
-    </div>
-
-    <button class="btn-primary" id="saveTask">שמור משימה</button>
-
-    <hr class="section-divider">
-
-    <div class="field-label" style="margin-bottom:8px">ניהול קטגוריות</div>
-    <div class="cat-manage" id="catChips"></div>
-    <div class="cat-add-row">
-      <input type="text" id="newCatInput" placeholder="שם קטגוריה חדשה...">
-      <button class="btn-secondary" id="addCatBtn">+ הוסף</button>
-    </div>
-  </div>
 </div>
 
 <script>
-// ===== STATE =====
 const CAT_COLORS = ['#457b9d','#e76f51','#2a9d8f','#e9c46a','#a786df','#f4a261','#52b788','#e63946','#90e0ef','#c77dff'];
-
 let state = loadState();
-
-function loadState() {
-  try {
-    const s = JSON.parse(localStorage.getItem('taskapp_v2'));
-    if (s) return s;
-  } catch(e) {}
-  return {
-    categories: [
-      { id: 'work',   name: 'עבודה',  color: '#457b9d' },
-      { id: 'personal', name: 'אישי', color: '#e76f51' },
-      { id: 'shopping', name: 'קניות', color: '#2a9d8f' },
-      { id: 'study',  name: 'לימודים', color: '#e9c46a' },
-    ],
-    tasks: [],
-    nextId: 1
-  };
-}
-
-function saveState() {
-  localStorage.setItem('taskapp_v2', JSON.stringify(state));
-}
-
-// ===== FILTER =====
 let activeFilter = 'all';
 let selectedUrgency = 'mid';
+let selectedTasks = new Set();
 
-// ===== RENDER =====
+function loadState() {
+    const s = JSON.parse(localStorage.getItem('taskapp_v2'));
+    return s || {
+        categories: [
+            { id: 'work', name: 'עבודה', color: '#457b9d' },
+            { id: 'personal', name: 'אישי', color: '#e76f51' },
+            { id: 'study', name: 'לימודים', color: '#e9c46a' }
+        ],
+        tasks: [],
+        nextId: 1
+    };
+}
+
+function saveState() { localStorage.setItem('taskapp_v2', JSON.stringify(state)); }
+
 function render() {
-  renderFilterBar();
-  renderTasks();
-  renderStats();
-  updateArchiveCount();
+    renderFilterBar();
+    renderTasks();
+    renderStats();
+    updateArchiveCount();
 }
 
 function renderStats() {
-  const open = state.tasks.filter(t => !t.done).length;
-  document.getElementById('stats').textContent = `${open} פתוחות`;
+    const open = state.tasks.filter(t => !t.done).length;
+    document.getElementById('stats').textContent = `${open} פתוחות`;
 }
 
 function renderFilterBar() {
-  const bar = document.getElementById('filterBar');
-  // keep first 3 static filters, rebuild category filters
-  const staticBtns = Array.from(bar.querySelectorAll('[data-filter]'));
-  // remove old cat filters
-  staticBtns.forEach(b => {
-    if (!['all','high','done'].includes(b.dataset.filter)) b.remove();
-  });
-  state.categories.forEach(cat => {
-    if (!bar.querySelector(`[data-filter="cat_${cat.id}"]`)) {
-      const btn = document.createElement('button');
-      btn.className = 'filter-btn';
-      btn.dataset.filter = `cat_${cat.id}`;
-      btn.style.borderColor = 'transparent';
-      btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cat.color};margin-left:4px;vertical-align:middle"></span>${cat.name}`;
-      bar.appendChild(btn);
-    }
-  });
-  // mark active
-  bar.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.filter === activeFilter);
-  });
-}
+    const bar = document.getElementById('filterBar');
+    const existing = bar.querySelectorAll('.filter-btn');
+    existing.forEach(b => { if(b.dataset.filter.startsWith('cat_')) b.remove(); });
 
-function getFilteredTasks() {
-  if (activeFilter === 'all') return state.tasks.filter(t => !t.done);
-  if (activeFilter === 'high') return state.tasks.filter(t => t.urgency === 'high' && !t.done);
-  if (activeFilter.startsWith('cat_')) {
-    const catId = activeFilter.replace('cat_','');
-    return state.tasks.filter(t => t.catId === catId && !t.done);
-  }
-  return state.tasks;
+    state.categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.dataset.filter = `cat_${cat.id}`;
+        btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cat.color};margin-left:4px;"></span>${cat.name}`;
+        if (activeFilter === `cat_${cat.id}`) btn.classList.add('active');
+        bar.appendChild(btn);
+    });
 }
 
 function renderTasks() {
-  const container = document.getElementById('taskList');
-  const filtered = getFilteredTasks();
+    const container = document.getElementById('taskList');
+    let filtered = state.tasks.filter(t => !t.done);
+    
+    if (activeFilter === 'high') filtered = filtered.filter(t => t.urgency === 'high');
+    else if (activeFilter.startsWith('cat_')) {
+        const catId = activeFilter.replace('cat_','');
+        filtered = filtered.filter(t => t.catId === catId);
+    }
 
-  if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state">
-      <div style="font-size:36px;margin-bottom:10px">✦</div>
-      <div>אין משימות כאן</div>
-      <div style="font-size:12px;margin-top:4px">לחץ על "משימה חדשה" להתחיל</div>
-    </div>`;
-    return;
-  }
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">אין משימות כאן</div>';
+        return;
+    }
 
-  // Group by category
-  const byCategory = {};
-  filtered.forEach(t => {
-    if (!byCategory[t.catId]) byCategory[t.catId] = [];
-    byCategory[t.catId].push(t);
-  });
-
-  // Sort tasks within category by urgency
-  const urgOrder = { high: 0, mid: 1, low: 2 };
-  Object.values(byCategory).forEach(arr => arr.sort((a,b) => urgOrder[a.urgency] - urgOrder[b.urgency]));
-
-  let html = '';
-  state.categories.forEach(cat => {
-    const tasks = byCategory[cat.id];
-    if (!tasks || tasks.length === 0) return;
-
-    html += `<div class="category-section">
-      <div class="category-header">
-        <div class="category-name">
-          <span class="cat-dot" style="background:${cat.color}"></span>
-          ${cat.name}
-        </div>
-        <span class="cat-count">${tasks.length}</span>
-      </div>`;
-
-    tasks.forEach(t => {
-      const urgLabel = { high:'גבוהה', mid:'בינונית', low:'נמוכה' }[t.urgency];
-      const dateStr = new Date(t.created).toLocaleDateString('he-IL', { day:'numeric', month:'short' });
-      html += `<div class="task-card ${t.urgency} ${selectedTasks.has(t.id)?'selected':''}" data-id="${t.id}">
-        <button class="check-btn ${selectedTasks.has(t.id)?'checked':''}" onclick="toggleSelect(${t.id},event)" title="סמן">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        </button>
-        <div class="task-body">
-          <div class="task-text">${escHtml(t.text)}</div>
-          <div class="task-meta">
-            <span class="badge ${t.urgency}">${urgLabel}</span>
-            <span class="task-date">${dateStr}</span>
-          </div>
-        </div>
-        <button class="delete-btn" onclick="deleteTask(${t.id},event)" title="מחק">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
-      </div>`;
-    });
-
-    html += `</div>`;
-  });
-
-  container.innerHTML = html;
+    const html = filtered.map(t => {
+        const dateStr = new Date(t.created).toLocaleDateString('he-IL', {day:'numeric', month:'short'});
+        return `
+            <div class="task-card ${t.urgency} ${selectedTasks.has(t.id)?'selected':''}" onclick="toggleSelect(${t.id}, event)">
+                <button class="check-btn ${selectedTasks.has(t.id)?'checked':''}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+                <div class="task-body">
+                    <div class="task-text">${t.text}</div>
+                    <div class="task-meta">
+                        <span class="badge ${t.urgency}">${t.urgency}</span>
+                        <span class="task-date">${dateStr}</span>
+                    </div>
+                </div>
+                <button class="delete-btn" onclick="deleteTask(${t.id}, event)">✕</button>
+            </div>`;
+    }).join('');
+    container.innerHTML = html;
 }
 
-// ===== SELECTION & ACTIONS =====
-let selectedTasks = new Set();
-
 function toggleSelect(id, e) {
-  e.stopPropagation();
-  if (selectedTasks.has(id)) {
-    selectedTasks.delete(id);
-  } else {
-    selectedTasks.add(id);
-  }
-  renderTasks();
-  updateSelectionBar();
+    if (selectedTasks.has(id)) selectedTasks.delete(id);
+    else selectedTasks.add(id);
+    updateSelectionBar();
+    renderTasks();
 }
 
 function updateSelectionBar() {
-  const bar = document.getElementById('selectionBar');
-  const count = selectedTasks.size;
-  if (count > 0) {
-    bar.style.display = 'flex';
-    document.getElementById('selectionCount').textContent = `${count} משימות מסומנות`;
-  } else {
-    bar.style.display = 'none';
-  }
-}
-
-function deleteSelected() {
-  if (selectedTasks.size === 0) return;
-  state.tasks = state.tasks.filter(t => !selectedTasks.has(t.id));
-  selectedTasks.clear();
-  saveState(); render(); updateSelectionBar();
-  showToast('✓ המשימות נמחקו');
+    const bar = document.getElementById('selectionBar');
+    if (selectedTasks.size > 0) {
+        bar.style.display = 'flex';
+        document.getElementById('selectionCount').textContent = `${selectedTasks.size} מסומנות`;
+    } else bar.style.display = 'none';
 }
 
 function markSelectedDone() {
-  selectedTasks.forEach(id => {
-    const t = state.tasks.find(t => t.id === id);
-    if (t) t.done = true;
-  });
-  selectedTasks.clear();
-  saveState(); render(); updateSelectionBar();
-  showToast('✓ המשימות הועברו לארכיון');
-}
-
-function clearSelection() {
-  selectedTasks.clear();
-  renderTasks();
-  updateSelectionBar();
+    state.tasks.forEach(t => { if(selectedTasks.has(t.id)) t.done = true; });
+    selectedTasks.clear();
+    saveState(); render(); updateSelectionBar();
 }
 
 function deleteTask(id, e) {
-  e.stopPropagation();
-  state.tasks = state.tasks.filter(t => t.id !== id);
-  selectedTasks.delete(id);
-  saveState(); render(); updateSelectionBar();
+    e.stopPropagation();
+    state.tasks = state.tasks.filter(t => t.id !== id);
+    saveState(); render();
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function clearSelection() { selectedTasks.clear(); updateSelectionBar(); renderTasks(); }
 
-// ===== MODAL =====
+// Modal Logic
 const modal = document.getElementById('addModal');
+document.getElementById('fabBtn').onclick = () => {
+    modal.classList.add('open');
+    const sel = document.getElementById('taskCat');
+    sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+};
+document.getElementById('closeModal').onclick = () => modal.classList.remove('open');
 
-document.getElementById('fabBtn').onclick = openModal;
-document.getElementById('closeModal').onclick = closeModal;
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-function openModal() {
-  modal.classList.add('open');
-  populateCatSelect();
-  renderCatChips();
-  document.getElementById('taskText').focus();
-}
-
-function closeModal() {
-  modal.classList.remove('open');
-  document.getElementById('taskText').value = '';
-  selectedUrgency = 'mid';
-  updateUrgBtns();
-}
-
-function populateCatSelect() {
-  const sel = document.getElementById('taskCat');
-  sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-}
-
-// urgency buttons
 document.querySelectorAll('.urg-btn').forEach(btn => {
-  btn.onclick = () => {
-    selectedUrgency = btn.dataset.urg;
-    updateUrgBtns();
-  };
+    btn.onclick = () => {
+        selectedUrgency = btn.dataset.urg;
+        document.querySelectorAll('.urg-btn').forEach(b => {
+            b.className = 'urg-btn';
+            if (b.dataset.urg === selectedUrgency) b.classList.add(`selected-${selectedUrgency}`);
+        });
+    };
 });
 
-function updateUrgBtns() {
-  document.querySelectorAll('.urg-btn').forEach(b => {
-    b.className = 'urg-btn';
-    if (b.dataset.urg === selectedUrgency) b.classList.add(`selected-${selectedUrgency}`);
-  });
-}
-updateUrgBtns();
-
-// save task
 document.getElementById('saveTask').onclick = () => {
-  const text = document.getElementById('taskText').value.trim();
-  if (!text) { document.getElementById('taskText').focus(); return; }
-  const catId = document.getElementById('taskCat').value;
-  state.tasks.push({
-    id: state.nextId++,
-    text,
-    catId,
-    urgency: selectedUrgency,
-    done: false,
-    created: Date.now()
-  });
-  saveState(); render(); closeModal();
+    const text = document.getElementById('taskText').value.trim();
+    if (!text) return;
+    state.tasks.push({
+        id: state.nextId++,
+        text,
+        catId: document.getElementById('taskCat').value,
+        urgency: selectedUrgency,
+        done: false,
+        created: Date.now()
+    });
+    saveState(); render();
+    modal.classList.remove('open');
+    document.getElementById('taskText').value = '';
 };
 
-// Enter key
-document.getElementById('taskText').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('saveTask').click();
-});
-
-// add category
-document.getElementById('addCatBtn').onclick = addCategory;
-document.getElementById('newCatInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addCategory();
-});
-
-function addCategory() {
-  const inp = document.getElementById('newCatInput');
-  const name = inp.value.trim();
-  if (!name) return;
-  const id = 'cat_' + Date.now();
-  const color = CAT_COLORS[state.categories.length % CAT_COLORS.length];
-  state.categories.push({ id, name, color });
-  inp.value = '';
-  saveState(); render(); populateCatSelect(); renderCatChips();
-}
-
-function renderCatChips() {
-  const cont = document.getElementById('catChips');
-  const defaultIds = ['work','personal','shopping','study'];
-  cont.innerHTML = state.categories.map(cat => {
-    const removable = !defaultIds.includes(cat.id);
-    return `<div class="cat-chip">
-      <span style="width:8px;height:8px;border-radius:50%;background:${cat.color};display:inline-block"></span>
-      ${cat.name}
-      ${removable ? `<button class="rm" onclick="removeCat('${cat.id}')">✕</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-function removeCat(id) {
-  if (state.tasks.some(t => t.catId === id)) {
-    alert('לא ניתן למחוק קטגוריה עם משימות קיימות');
-    return;
-  }
-  state.categories = state.categories.filter(c => c.id !== id);
-  saveState(); render(); populateCatSelect(); renderCatChips();
-}
-
-// ===== QUICK ADD CATEGORY MODAL =====
+// Quick Category
 const quickCatModal = document.getElementById('quickCatModal');
-let selectedQuickColor = CAT_COLORS[0];
+let quickColor = CAT_COLORS[0];
 
-function openQuickCatModal() {
-  selectedQuickColor = CAT_COLORS[state.categories.length % CAT_COLORS.length];
-  renderColorPicker();
-  document.getElementById('quickCatName').value = '';
-  quickCatModal.classList.add('open');
-  setTimeout(() => document.getElementById('quickCatName').focus(), 100);
-}
-
-function closeQuickCatModal() {
-  quickCatModal.classList.remove('open');
-}
-
-function renderColorPicker() {
-  const picker = document.getElementById('colorPicker');
-  picker.innerHTML = CAT_COLORS.map(c =>
-    `<div class="color-swatch ${c === selectedQuickColor ? 'selected' : ''}"
-      style="background:${c}"
-      onclick="selectColor('${c}')"></div>`
-  ).join('');
-}
-
-function selectColor(color) {
-  selectedQuickColor = color;
-  renderColorPicker();
-}
-
-document.getElementById('quickAddCatBtn').onclick = openQuickCatModal;
-document.getElementById('cancelQuickCat').onclick = closeQuickCatModal;
-quickCatModal.addEventListener('click', e => { if (e.target === quickCatModal) closeQuickCatModal(); });
+document.getElementById('quickAddCatBtn').onclick = () => {
+    quickCatModal.classList.add('open');
+    const picker = document.getElementById('colorPicker');
+    picker.innerHTML = CAT_COLORS.map(c => `<div class="color-swatch" style="background:${c}" onclick="quickColor='${c}'"></div>`).join('');
+};
 
 document.getElementById('saveQuickCat').onclick = () => {
-  const name = document.getElementById('quickCatName').value.trim();
-  if (!name) { document.getElementById('quickCatName').focus(); return; }
-  const id = 'cat_' + Date.now();
-  state.categories.push({ id, name, color: selectedQuickColor });
-  saveState(); render();
-  closeQuickCatModal();
-  // show a quick toast
-  showToast(`✦ "${name}" נוסף בהצלחה!`);
+    const name = document.getElementById('quickCatName').value.trim();
+    if (!name) return;
+    state.categories.push({ id: 'cat_'+Date.now(), name, color: quickColor });
+    saveState(); render();
+    quickCatModal.classList.remove('open');
+};
+document.getElementById('cancelQuickCat').onclick = () => quickCatModal.classList.remove('open');
+
+// Archive
+const archSidebar = document.getElementById('archiveSidebar');
+document.getElementById('archiveToggle').onclick = () => {
+    archSidebar.classList.add('open');
+    document.getElementById('archiveOverlay').classList.add('open');
+    const done = state.tasks.filter(t => t.done);
+    document.getElementById('archiveBody').innerHTML = done.map(t => `
+        <div style="background:var(--surface2); padding:10px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span style="text-decoration:line-through; color:var(--text-dim);">${t.text}</span>
+            <button onclick="restoreTask(${t.id})" style="background:none; border:none; color:var(--low); cursor:pointer;">↩</button>
+        </div>
+    `).join('') || 'הארכיון ריק';
 };
 
-document.getElementById('quickCatName').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('saveQuickCat').click();
-});
-
-// TOAST
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22223b;border:1px solid rgba(255,255,255,0.12);color:#f0eff4;padding:10px 18px;border-radius:20px;font-size:14px;font-weight:600;z-index:999;animation:fadeUp 0.3s ease;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4)`;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
-}
-
-// ===== FILTER CLICKS =====
-document.getElementById('filterBar').addEventListener('click', e => {
-  const btn = e.target.closest('.filter-btn');
-  if (!btn) return;
-  activeFilter = btn.dataset.filter;
-  render();
-});
-
-
-// ===== ARCHIVE SIDEBAR =====
-const archiveSidebar = document.getElementById('archiveSidebar');
-const archiveOverlay = document.getElementById('archiveOverlay');
-
-function openArchive() {
-  renderArchive();
-  archiveSidebar.classList.add('open');
-  archiveOverlay.classList.add('open');
-}
-function closeArchive() {
-  archiveSidebar.classList.remove('open');
-  archiveOverlay.classList.remove('open');
-}
-
-document.getElementById('archiveToggle').onclick = openArchive;
-document.getElementById('archiveClose').onclick = closeArchive;
-archiveOverlay.onclick = closeArchive;
-
-function renderArchive() {
-  const body = document.getElementById('archiveBody');
-  const done = state.tasks.filter(t => t.done);
-
-  // update toggle count
-  const countEl = document.getElementById('archCount');
-  if (done.length > 0) {
-    countEl.textContent = done.length;
-    countEl.classList.add('visible');
-  } else {
-    countEl.classList.remove('visible');
-  }
-
-  if (done.length === 0) {
-    body.innerHTML = '<div class="archive-empty"><div style="font-size:32px;margin-bottom:10px">🗂</div><div>אין משימות שהושלמו עדיין</div></div>';
-    return;
-  }
-
-  // Group by category
-  const byCategory = {};
-  done.forEach(t => {
-    if (!byCategory[t.catId]) byCategory[t.catId] = [];
-    byCategory[t.catId].push(t);
-  });
-
-  let html = '';
-  state.categories.forEach(cat => {
-    const tasks = byCategory[cat.id];
-    if (!tasks || tasks.length === 0) return;
-    html += `<div class="archive-group-title"><span style="width:7px;height:7px;border-radius:50%;background:${cat.color};display:inline-block;flex-shrink:0"></span>${cat.name} (${tasks.length})</div>`;
-    tasks.forEach(t => {
-      const dateStr = new Date(t.created).toLocaleDateString('he-IL', { day:'numeric', month:'short' });
-      html += `<div class="archive-task">
-        <div class="archive-task-body" style="flex:1;min-width:0">
-          <div class="archive-task-text">${escHtml(t.text)}</div>
-          <div class="archive-task-meta">${dateStr}</div>
-        </div>
-        <button class="restore-btn" onclick="restoreTask(${t.id})" title="שחזר משימה">↩</button>
-        <button class="delete-arch-btn" onclick="deleteFromArchive(${t.id})" title="מחק לצמיתות">✕</button>
-      </div>`;
-    });
-  });
-  body.innerHTML = html;
-}
-
 function restoreTask(id) {
-  const t = state.tasks.find(t => t.id === id);
-  if (t) { t.done = false; saveState(); render(); renderArchive(); }
+    const t = state.tasks.find(t => t.id === id);
+    if(t) t.done = false;
+    saveState(); render();
+    document.getElementById('archiveToggle').click(); 
 }
 
-function deleteFromArchive(id) {
-  state.tasks = state.tasks.filter(t => t.id !== id);
-  saveState(); render(); renderArchive();
-}
-
-document.getElementById('archiveClearBtn').onclick = () => {
-  const count = state.tasks.filter(t => t.done).length;
-  if (count === 0) return;
-  if (!confirm(`למחוק לצמיתות את כל ${count} המשימות שהושלמו?`)) return;
-  state.tasks = state.tasks.filter(t => !t.done);
-  saveState(); render(); renderArchive();
+document.getElementById('archiveClose').onclick = () => {
+    archSidebar.classList.remove('open');
+    document.getElementById('archiveOverlay').classList.remove('open');
 };
 
 function updateArchiveCount() {
-  const done = state.tasks.filter(t => t.done).length;
-  const countEl = document.getElementById('archCount');
-  if (done > 0) {
-    countEl.textContent = done;
-    countEl.classList.add('visible');
-  } else {
-    countEl.classList.remove('visible');
-  }
+    const count = state.tasks.filter(t => t.done).length;
+    const el = document.getElementById('archCount');
+    if (count > 0) { el.textContent = count; el.style.display = 'block'; }
+    else el.style.display = 'none';
 }
 
-// ===== INIT =====
+document.getElementById('filterBar').onclick = (e) => {
+    if (e.target.classList.contains('filter-btn')) {
+        activeFilter = e.target.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === e.target));
+        render();
+    }
+};
+
 render();
 </script>
 </body>
