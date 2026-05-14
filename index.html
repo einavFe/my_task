@@ -4,19 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <meta name="theme-color" content="#1a1a2e">
-    
-    <!-- הגדרות אפליקציה עבור אייפון ואנדרואיד -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="המשימות שלי">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
-
     <title>המשימות שלי</title>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    
     <style>
       :root {
         --bg: #0f0f1a;
@@ -46,7 +41,6 @@
         overflow-x: hidden;
       }
 
-      /* BG texture */
       body::before {
         content: '';
         position: fixed;
@@ -100,12 +94,47 @@
         overflow-x: auto;
         scrollbar-width: none;
         padding-bottom: 2px;
+        align-items: center;
       }
       .filter-bar::-webkit-scrollbar { display: none; }
 
+      /* FIX 5: Sort controls */
+      .sort-bar {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 6px 0 2px;
+        align-items: center;
+      }
+      .sort-bar::-webkit-scrollbar { display: none; }
+      .sort-label {
+        font-size: 11px;
+        color: var(--text-dim);
+        font-weight: 700;
+        flex-shrink: 0;
+        letter-spacing: 0.5px;
+      }
+      .sort-btn {
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-dim);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .sort-btn.active {
+        background: var(--surface2);
+        border-color: var(--accent3);
+        color: var(--accent3);
+      }
+
       .add-cat-inline-btn {
         flex-shrink: 0;
-        margin-right: auto;
         border: 1px dashed rgba(255,255,255,0.2);
         background: transparent;
         color: var(--text-dim);
@@ -120,6 +149,58 @@
         gap: 4px;
       }
       .add-cat-inline-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+
+      /* Confirm dialog */
+      .confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 600;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+      }
+      .confirm-overlay.open { display: flex; }
+      .confirm-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px 24px 20px;
+        width: 100%;
+        max-width: 320px;
+        text-align: center;
+        animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      }
+      .confirm-icon { font-size: 36px; margin-bottom: 10px; }
+      .confirm-title { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+      .confirm-msg { font-size: 14px; color: var(--text-dim); margin-bottom: 20px; }
+      .confirm-actions { display: flex; gap: 10px; }
+      .confirm-actions .btn-danger {
+        flex: 1;
+        background: var(--high);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .confirm-actions .btn-cancel-confirm {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        border-radius: 12px;
+        padding: 12px;
+        font-family: 'Heebo', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
 
       .quick-modal-overlay {
         display: none;
@@ -146,30 +227,11 @@
         from { opacity: 0; transform: scale(0.85); }
         to   { opacity: 1; transform: scale(1); }
       }
-      .quick-modal-title {
-        font-size: 17px;
-        font-weight: 800;
-        margin-bottom: 14px;
-      }
-      .quick-modal-row {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 14px;
-      }
-      .quick-modal-row input { flex: 1; }
-      .color-picker {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 16px;
-      }
+      .quick-modal-title { font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+      .color-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
       .color-swatch {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid transparent;
-        cursor: pointer;
-        transition: transform 0.15s;
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 2px solid transparent; cursor: pointer; transition: transform 0.15s;
       }
       .color-swatch.selected { border-color: white; transform: scale(1.15); }
       .quick-modal-actions { display: flex; gap: 8px; }
@@ -209,15 +271,12 @@
         position: relative;
         z-index: 1;
         padding: 16px;
-        padding-bottom: 100px;
+        padding-bottom: 120px;
         max-width: 600px;
         margin: 0 auto;
       }
 
-      .category-section {
-        margin-bottom: 20px;
-        animation: fadeUp 0.3s ease both;
-      }
+      .category-section { margin-bottom: 20px; animation: fadeUp 0.3s ease both; }
 
       @keyframes fadeUp {
         from { opacity: 0; transform: translateY(12px); }
@@ -243,12 +302,7 @@
         gap: 6px;
       }
 
-      .cat-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-      }
-
+      .cat-dot { width: 8px; height: 8px; border-radius: 50%; }
       .cat-count {
         font-size: 11px;
         background: var(--surface2);
@@ -286,15 +340,14 @@
       .task-card.mid::before  { background: var(--mid); }
       .task-card.low::before  { background: var(--low); }
 
-      .task-card.done {
-        opacity: var(--done-opacity);
-      }
+      .task-card.done { opacity: var(--done-opacity); }
 
+      /* FIX 3: check button - green when selected */
       .check-btn {
         width: 22px;
         height: 22px;
         border-radius: 50%;
-        border: 2px solid var(--border);
+        border: 2px solid rgba(255,255,255,0.25);
         background: transparent;
         cursor: pointer;
         flex-shrink: 0;
@@ -305,12 +358,19 @@
         margin-top: 1px;
       }
 
+      /* When task card is selected (multi-select mode) */
+      .task-card.selected .check-btn {
+        background: var(--low);
+        border-color: var(--low);
+      }
+
       .task-card.done .check-btn {
         background: var(--low);
         border-color: var(--low);
       }
 
       .check-btn svg { display: none; }
+      .task-card.selected .check-btn svg { display: block; }
       .task-card.done .check-btn svg { display: block; }
 
       .task-body { flex: 1; min-width: 0; }
@@ -322,9 +382,7 @@
         word-break: break-word;
       }
 
-      .task-card.done .task-text {
-        text-decoration: line-through;
-      }
+      .task-card.done .task-text { text-decoration: line-through; }
 
       .task-meta {
         display: flex;
@@ -347,10 +405,7 @@
       .badge.mid  { background: rgba(244,162,97,0.2); color: var(--mid); }
       .badge.low  { background: rgba(82,183,136,0.2); color: var(--low); }
 
-      .task-date {
-        font-size: 11px;
-        color: var(--text-dim);
-      }
+      .task-date { font-size: 11px; color: var(--text-dim); }
 
       .delete-btn {
         background: transparent;
@@ -360,6 +415,7 @@
         padding: 2px;
         opacity: 0.8;
         flex-shrink: 0;
+        font-size: 14px;
       }
 
       .empty-state {
@@ -369,17 +425,24 @@
         font-size: 14px;
       }
 
-      .fab {
+      /* FIX 6: complete button */
+      .fab-row {
         position: fixed;
         bottom: 24px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 200;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .fab {
         background: linear-gradient(135deg, var(--accent) 0%, #c1121f 100%);
         color: white;
         border: none;
         border-radius: 50px;
-        padding: 14px 28px;
+        padding: 14px 24px;
         font-family: 'Heebo', sans-serif;
         font-size: 16px;
         font-weight: 700;
@@ -389,6 +452,13 @@
         align-items: center;
         gap: 8px;
         transition: all 0.2s;
+        white-space: nowrap;
+      }
+
+      .fab-complete {
+        background: linear-gradient(135deg, var(--low) 0%, #2d9653 100%);
+        box-shadow: 0 4px 20px rgba(82,183,136,0.5);
+        display: none;
       }
 
       .modal-overlay {
@@ -426,11 +496,7 @@
         margin: 0 auto 20px;
       }
 
-      .modal-title {
-        font-size: 18px;
-        font-weight: 900;
-        margin-bottom: 16px;
-      }
+      .modal-title { font-size: 18px; font-weight: 900; margin-bottom: 16px; }
 
       .field-label {
         font-size: 12px;
@@ -443,7 +509,7 @@
 
       .field { margin-bottom: 14px; }
 
-      input[type="text"], select {
+      input[type="text"] {
         width: 100%;
         background: var(--surface2);
         border: 1px solid var(--border);
@@ -453,6 +519,30 @@
         font-family: 'Heebo', sans-serif;
         font-size: 15px;
         outline: none;
+      }
+
+      select {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 14px;
+        color: var(--text);
+        font-family: 'Heebo', sans-serif;
+        font-size: 15px;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      /* FIX 4: Add category link inside modal */
+      .add-cat-link {
+        font-size: 12px;
+        color: var(--accent3);
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 5px;
+        display: inline-block;
       }
 
       .urgency-grid {
@@ -552,6 +642,19 @@
 </head>
 <body>
 
+<!-- FIX 2: Confirm Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <div class="confirm-icon">🗑</div>
+        <div class="confirm-title" id="confirmTitle">מחיקה לצמיתות</div>
+        <div class="confirm-msg" id="confirmMsg">האם אתה בטוח שברצונך למחוק? פעולה זו אינה ניתנת לביטול.</div>
+        <div class="confirm-actions">
+            <button class="btn-cancel-confirm" id="confirmCancel">ביטול</button>
+            <button class="btn-danger" id="confirmOk">מחק</button>
+        </div>
+    </div>
+</div>
+
 <div class="archive-overlay" id="archiveOverlay"></div>
 
 <aside class="archive-sidebar" id="archiveSidebar">
@@ -560,7 +663,8 @@
         <button id="archiveClose" style="background:none; border:none; color:var(--text-dim); cursor:pointer;">✕</button>
     </div>
     <div id="archiveBody" style="flex:1; overflow-y:auto; padding:12px;"></div>
-    <button id="archiveClearBtn" style="margin:12px; padding:10px; background:transparent; border:1px solid var(--high); color:var(--high); border-radius:10px; font-family:'Heebo'; cursor:pointer;">🗑 מחק הכל</button>
+    <!-- FIX 1: Archive clear button now works via confirmDelete -->
+    <button id="archiveClearBtn" style="margin:12px; padding:10px; background:transparent; border:1px solid var(--high); color:var(--high); border-radius:10px; font-family:'Heebo'; cursor:pointer; font-size:14px; font-weight:700;">🗑 מחק הכל</button>
 </aside>
 
 <button class="archive-toggle" id="archiveToggle">
@@ -578,28 +682,42 @@
         <button class="filter-btn" data-filter="high">🔴 דחוף</button>
         <button class="add-cat-inline-btn" id="quickAddCatBtn">＋ תחום חדש</button>
     </div>
+    <!-- FIX 5: Sort bar -->
+    <div class="sort-bar">
+        <span class="sort-label">מיין:</span>
+        <button class="sort-btn active" data-sort="date">📅 תאריך</button>
+        <button class="sort-btn" data-sort="urgency">🔴 דחיפות</button>
+        <button class="sort-btn" data-sort="category">📂 תחום</button>
+    </div>
 </header>
 
 <div class="selection-bar" id="selectionBar" style="display:none">
     <span id="selectionCount" style="color:white; font-size:14px; font-weight:700;"></span>
     <div style="display:flex; gap:8px;">
-        <button onclick="markSelectedDone()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 12px; border-radius:8px; font-family:'Heebo'; cursor:pointer;">→ ארכיון</button>
-        <button onclick="clearSelection()" style="background:none; color:white; border:none; cursor:pointer;">✕</button>
+        <button onclick="markSelectedDone()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 12px; border-radius:8px; font-family:'Heebo'; cursor:pointer; font-weight:700;">✓ הושלמו</button>
+        <button onclick="clearSelection()" style="background:none; color:white; border:none; cursor:pointer; font-size:18px;">✕</button>
     </div>
 </div>
 
 <main id="taskList"></main>
 
-<button class="fab" id="fabBtn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    משימה חדשה
-</button>
+<!-- FIX 6: Two FAB buttons -->
+<div class="fab-row">
+    <button class="fab fab-complete" id="fabComplete">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        המשימה הושלמה
+    </button>
+    <button class="fab" id="fabBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        משימה חדשה
+    </button>
+</div>
 
 <!-- MODALS -->
 <div class="quick-modal-overlay" id="quickCatModal">
     <div class="quick-modal">
         <div class="quick-modal-title">➕ תחום חדש</div>
-        <input type="text" id="quickCatName" placeholder="שם התחום..." style="width:100%; margin-bottom:15px; padding:10px; background:var(--surface2); border:1px solid var(--border); color:white; border-radius:10px;">
+        <input type="text" id="quickCatName" placeholder="שם התחום..." style="width:100%; margin-bottom:15px; padding:10px; background:var(--surface2); border:1px solid var(--border); color:white; border-radius:10px; font-family:'Heebo';">
         <div class="color-picker" id="colorPicker"></div>
         <div class="quick-modal-actions">
             <button class="btn-cancel" id="cancelQuickCat">ביטול</button>
@@ -619,6 +737,8 @@
         <div class="field">
             <div class="field-label">נושא</div>
             <select id="taskCat"></select>
+            <!-- FIX 4: Add category from within modal -->
+            <span class="add-cat-link" id="addCatFromModal">＋ הוסף תחום חדש</span>
         </div>
         <div class="field">
             <div class="field-label">דחיפות</div>
@@ -629,7 +749,7 @@
             </div>
         </div>
         <button class="btn-primary" id="saveTask">שמור משימה</button>
-        <button id="closeModal" style="width:100%; background:none; border:none; color:var(--text-dim); margin-top:10px; cursor:pointer;">ביטול</button>
+        <button id="closeModal" style="width:100%; background:none; border:none; color:var(--text-dim); margin-top:10px; cursor:pointer; font-family:'Heebo'; font-size:14px;">ביטול</button>
     </div>
 </div>
 
@@ -637,11 +757,13 @@
 const CAT_COLORS = ['#457b9d','#e76f51','#2a9d8f','#e9c46a','#a786df','#f4a261','#52b788','#e63946','#90e0ef','#c77dff'];
 let state = loadState();
 let activeFilter = 'all';
+let activeSort = 'date';
 let selectedUrgency = 'mid';
 let selectedTasks = new Set();
+let confirmCallback = null;
 
 function loadState() {
-    const s = JSON.parse(localStorage.getItem('taskapp_v2'));
+    const s = JSON.parse(localStorage.getItem('taskapp_v3') || localStorage.getItem('taskapp_v2') || 'null');
     return s || {
         categories: [
             { id: 'work', name: 'עבודה', color: '#457b9d' },
@@ -653,13 +775,32 @@ function loadState() {
     };
 }
 
-function saveState() { localStorage.setItem('taskapp_v2', JSON.stringify(state)); }
+function saveState() { localStorage.setItem('taskapp_v3', JSON.stringify(state)); }
+
+// FIX 2: Confirm dialog helper
+function showConfirm(title, msg, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    confirmCallback = onConfirm;
+    document.getElementById('confirmOverlay').classList.add('open');
+}
+
+document.getElementById('confirmCancel').onclick = () => {
+    document.getElementById('confirmOverlay').classList.remove('open');
+    confirmCallback = null;
+};
+
+document.getElementById('confirmOk').onclick = () => {
+    document.getElementById('confirmOverlay').classList.remove('open');
+    if (confirmCallback) { confirmCallback(); confirmCallback = null; }
+};
 
 function render() {
     renderFilterBar();
     renderTasks();
     renderStats();
     updateArchiveCount();
+    updateFabComplete();
 }
 
 function renderStats() {
@@ -669,59 +810,108 @@ function renderStats() {
 
 function renderFilterBar() {
     const bar = document.getElementById('filterBar');
-    const existing = bar.querySelectorAll('.filter-btn');
-    existing.forEach(b => { if(b.dataset.filter.startsWith('cat_')) b.remove(); });
+    bar.querySelectorAll('.filter-btn[data-filter^="cat_"]').forEach(b => b.remove());
 
+    const addBtn = document.getElementById('quickAddCatBtn');
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
         btn.dataset.filter = `cat_${cat.id}`;
         btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cat.color};margin-left:4px;"></span>${cat.name}`;
         if (activeFilter === `cat_${cat.id}`) btn.classList.add('active');
-        bar.appendChild(btn);
+        bar.insertBefore(btn, addBtn);
     });
+}
+
+// FIX 5: Sort tasks
+function sortTasks(tasks) {
+    const urgencyOrder = { high: 0, mid: 1, low: 2 };
+    if (activeSort === 'urgency') {
+        return [...tasks].sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
+    } else if (activeSort === 'category') {
+        return [...tasks].sort((a, b) => (a.catId || '').localeCompare(b.catId || ''));
+    } else {
+        return [...tasks].sort((a, b) => b.created - a.created);
+    }
 }
 
 function renderTasks() {
     const container = document.getElementById('taskList');
     let filtered = state.tasks.filter(t => !t.done);
-    
+
     if (activeFilter === 'high') filtered = filtered.filter(t => t.urgency === 'high');
     else if (activeFilter.startsWith('cat_')) {
         const catId = activeFilter.replace('cat_','');
         filtered = filtered.filter(t => t.catId === catId);
     }
 
+    filtered = sortTasks(filtered);
+
     if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state">אין משימות כאן</div>';
+        container.innerHTML = '<div class="empty-state">אין משימות כאן 🎉</div>';
         return;
     }
 
-    const html = filtered.map(t => {
-        const dateStr = new Date(t.created).toLocaleDateString('he-IL', {day:'numeric', month:'short'});
-        return `
-            <div class="task-card ${t.urgency} ${selectedTasks.has(t.id)?'selected':''}" onclick="toggleSelect(${t.id}, event)">
-                <button class="check-btn ${selectedTasks.has(t.id)?'checked':''}">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                </button>
-                <div class="task-body">
-                    <div class="task-text">${t.text}</div>
-                    <div class="task-meta">
-                        <span class="badge ${t.urgency}">${t.urgency}</span>
-                        <span class="task-date">${dateStr}</span>
+    // Group by category if sort=category
+    if (activeSort === 'category') {
+        const grouped = {};
+        filtered.forEach(t => {
+            const key = t.catId || '_none';
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(t);
+        });
+
+        let html = '';
+        Object.entries(grouped).forEach(([catId, tasks]) => {
+            const cat = state.categories.find(c => c.id === catId);
+            const catName = cat ? cat.name : 'כללי';
+            const catColor = cat ? cat.color : '#888';
+            html += `<div class="category-section">
+                <div class="category-header">
+                    <div class="category-name">
+                        <span class="cat-dot" style="background:${catColor}"></span>
+                        ${catName}
+                        <span class="cat-count">${tasks.length}</span>
                     </div>
                 </div>
-                <button class="delete-btn" onclick="deleteTask(${t.id}, event)">✕</button>
+                ${tasks.map(t => taskCardHTML(t)).join('')}
             </div>`;
-    }).join('');
-    container.innerHTML = html;
+        });
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = filtered.map(t => taskCardHTML(t)).join('');
+    }
+}
+
+function taskCardHTML(t) {
+    const dateStr = new Date(t.created).toLocaleDateString('he-IL', {day:'numeric', month:'short'});
+    const cat = state.categories.find(c => c.id === t.catId);
+    const catName = cat ? cat.name : '';
+    const isSelected = selectedTasks.has(t.id);
+    return `
+        <div class="task-card ${t.urgency} ${isSelected ? 'selected' : ''}" onclick="toggleSelect(${t.id}, event)">
+            <button class="check-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <div class="task-body">
+                <div class="task-text">${t.text}</div>
+                <div class="task-meta">
+                    <span class="badge ${t.urgency}">${{high:'גבוהה',mid:'בינונית',low:'נמוכה'}[t.urgency]}</span>
+                    ${catName ? `<span style="font-size:11px;color:var(--text-dim);">${catName}</span>` : ''}
+                    <span class="task-date">${dateStr}</span>
+                </div>
+            </div>
+            <button class="delete-btn" onclick="confirmDeleteTask(${t.id}, event)">✕</button>
+        </div>`;
 }
 
 function toggleSelect(id, e) {
+    if (e.target.classList.contains('delete-btn')) return;
     if (selectedTasks.has(id)) selectedTasks.delete(id);
     else selectedTasks.add(id);
     updateSelectionBar();
     renderTasks();
+    updateFabComplete();
 }
 
 function updateSelectionBar() {
@@ -732,28 +922,49 @@ function updateSelectionBar() {
     } else bar.style.display = 'none';
 }
 
+// FIX 6: Show "המשימה הושלמה" button when tasks selected
+function updateFabComplete() {
+    const fabComplete = document.getElementById('fabComplete');
+    fabComplete.style.display = selectedTasks.size > 0 ? 'flex' : 'none';
+}
+
 function markSelectedDone() {
-    state.tasks.forEach(t => { if(selectedTasks.has(t.id)) t.done = true; });
+    state.tasks.forEach(t => { if (selectedTasks.has(t.id)) t.done = true; });
     selectedTasks.clear();
     saveState(); render(); updateSelectionBar();
 }
 
-function deleteTask(id, e) {
+// FIX 2: Delete task with confirm
+function confirmDeleteTask(id, e) {
     e.stopPropagation();
-    state.tasks = state.tasks.filter(t => t.id !== id);
-    saveState(); render();
+    showConfirm('מחיקת משימה', 'האם אתה בטוח שברצונך למחוק את המשימה לצמיתות?', () => {
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        saveState(); render();
+    });
 }
 
-function clearSelection() { selectedTasks.clear(); updateSelectionBar(); renderTasks(); }
+function clearSelection() { selectedTasks.clear(); updateSelectionBar(); renderTasks(); updateFabComplete(); }
 
 // Modal Logic
 const modal = document.getElementById('addModal');
-document.getElementById('fabBtn').onclick = () => {
+function openAddModal() {
     modal.classList.add('open');
+    refreshCatSelect();
+    document.getElementById('taskText').focus();
+}
+
+function refreshCatSelect() {
     const sel = document.getElementById('taskCat');
+    const currentVal = sel.value;
     sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-};
+    if (currentVal && state.categories.find(c => c.id === currentVal)) sel.value = currentVal;
+}
+
+document.getElementById('fabBtn').onclick = openAddModal;
 document.getElementById('closeModal').onclick = () => modal.classList.remove('open');
+
+// FIX 6: Complete button
+document.getElementById('fabComplete').onclick = markSelectedDone;
 
 document.querySelectorAll('.urg-btn').forEach(btn => {
     btn.onclick = () => {
@@ -784,46 +995,105 @@ document.getElementById('saveTask').onclick = () => {
 // Quick Category
 const quickCatModal = document.getElementById('quickCatModal');
 let quickColor = CAT_COLORS[0];
+let openedFromModal = false;
 
-document.getElementById('quickAddCatBtn').onclick = () => {
+function openQuickCatModal(fromModal = false) {
+    openedFromModal = fromModal;
+    quickColor = CAT_COLORS[0];
+    document.getElementById('quickCatName').value = '';
     quickCatModal.classList.add('open');
     const picker = document.getElementById('colorPicker');
-    picker.innerHTML = CAT_COLORS.map(c => `<div class="color-swatch" style="background:${c}" onclick="quickColor='${c}'"></div>`).join('');
+    picker.innerHTML = CAT_COLORS.map((c, i) =>
+        `<div class="color-swatch ${i===0?'selected':''}" style="background:${c}" data-color="${c}" onclick="selectQuickColor('${c}', this)"></div>`
+    ).join('');
+}
+
+function selectQuickColor(color, el) {
+    quickColor = color;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
+document.getElementById('quickAddCatBtn').onclick = () => openQuickCatModal(false);
+
+// FIX 4: Add category from within new task modal
+document.getElementById('addCatFromModal').onclick = () => {
+    modal.classList.remove('open');
+    openQuickCatModal(true);
 };
 
 document.getElementById('saveQuickCat').onclick = () => {
     const name = document.getElementById('quickCatName').value.trim();
     if (!name) return;
-    state.categories.push({ id: 'cat_'+Date.now(), name, color: quickColor });
+    const newCat = { id: 'cat_' + Date.now(), name, color: quickColor };
+    state.categories.push(newCat);
     saveState(); render();
     quickCatModal.classList.remove('open');
+    // Return to task modal if opened from there
+    if (openedFromModal) {
+        modal.classList.add('open');
+        refreshCatSelect();
+        document.getElementById('taskCat').value = newCat.id;
+    }
 };
-document.getElementById('cancelQuickCat').onclick = () => quickCatModal.classList.remove('open');
+
+document.getElementById('cancelQuickCat').onclick = () => {
+    quickCatModal.classList.remove('open');
+    if (openedFromModal) modal.classList.add('open');
+};
+
+// Sort bar
+document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.onclick = () => {
+        activeSort = btn.dataset.sort;
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b === btn));
+        render();
+    };
+});
 
 // Archive
-const archSidebar = document.getElementById('archiveSidebar');
-document.getElementById('archiveToggle').onclick = () => {
+function openArchive() {
+    const archSidebar = document.getElementById('archiveSidebar');
     archSidebar.classList.add('open');
     document.getElementById('archiveOverlay').classList.add('open');
+    renderArchive();
+}
+
+function renderArchive() {
     const done = state.tasks.filter(t => t.done);
     document.getElementById('archiveBody').innerHTML = done.map(t => `
-        <div style="background:var(--surface2); padding:10px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between;">
-            <span style="text-decoration:line-through; color:var(--text-dim);">${t.text}</span>
-            <button onclick="restoreTask(${t.id})" style="background:none; border:none; color:var(--low); cursor:pointer;">↩</button>
+        <div style="background:var(--surface2); padding:10px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <span style="text-decoration:line-through; color:var(--text-dim); font-size:14px; flex:1;">${t.text}</span>
+            <button onclick="restoreTask(${t.id})" style="background:none; border:none; color:var(--low); cursor:pointer; font-size:16px; flex-shrink:0;">↩</button>
         </div>
-    `).join('') || 'הארכיון ריק';
-};
+    `).join('') || '<div style="color:var(--text-dim);text-align:center;padding:20px;font-size:14px;">הארכיון ריק</div>';
+}
 
 function restoreTask(id) {
     const t = state.tasks.find(t => t.id === id);
-    if(t) t.done = false;
-    saveState(); render();
-    document.getElementById('archiveToggle').click(); 
+    if (t) t.done = false;
+    saveState(); render(); renderArchive();
 }
 
+document.getElementById('archiveToggle').onclick = openArchive;
+
 document.getElementById('archiveClose').onclick = () => {
-    archSidebar.classList.remove('open');
+    document.getElementById('archiveSidebar').classList.remove('open');
     document.getElementById('archiveOverlay').classList.remove('open');
+};
+
+document.getElementById('archiveOverlay').onclick = () => {
+    document.getElementById('archiveSidebar').classList.remove('open');
+    document.getElementById('archiveOverlay').classList.remove('open');
+};
+
+// FIX 1: Archive clear all - now actually works
+document.getElementById('archiveClearBtn').onclick = () => {
+    const count = state.tasks.filter(t => t.done).length;
+    if (count === 0) return;
+    showConfirm('מחיקת כל הארכיון', `האם אתה בטוח שברצונך למחוק ${count} משימות מהארכיון לצמיתות?`, () => {
+        state.tasks = state.tasks.filter(t => !t.done);
+        saveState(); render(); renderArchive();
+    });
 };
 
 function updateArchiveCount() {
@@ -833,10 +1103,12 @@ function updateArchiveCount() {
     else el.style.display = 'none';
 }
 
+// Filter bar click
 document.getElementById('filterBar').onclick = (e) => {
-    if (e.target.classList.contains('filter-btn')) {
-        activeFilter = e.target.dataset.filter;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === e.target));
+    const btn = e.target.closest('.filter-btn');
+    if (btn) {
+        activeFilter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
         render();
     }
 };
